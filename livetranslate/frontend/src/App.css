@@ -1,0 +1,307 @@
+/* ================================================================
+   App.css — responsive overrides (additive only)
+   index.css / colors_and_type.css ga tegmaydi.
+   ================================================================ */
+
+/* ── 1. Global: horizontal scroll oldini olish ─────────────────── */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* iOS rubber-band scroll faqat scroll hududida bo'lsin */
+body {
+  overscroll-behavior: none;
+}
+
+/* ── 2. Layout: header/footer fixed, content scrollable ────────── */
+
+/* 100dvh — Android Chrome address bar ni hisobga oladi */
+.lt-app {
+  height: 100dvh;
+  height: 100vh; /* fallback for older browsers */
+  overflow: hidden;
+}
+
+/* Header va language bar — qotirib turamiz */
+.lt-header,
+.lt-langbar {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Transcript area — scroll oladi */
+.lt-main {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.lt-panel__scroll {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; /* iOS momentum scroll */
+}
+
+/* Controls va statusbar — pastda qotib turadi */
+.lt-controls,
+.lt-statusbar {
+  flex-shrink: 0;
+}
+
+/* iOS safe area (notch, home indicator) */
+.lt-statusbar {
+  padding-bottom: max(var(--sp-2), env(safe-area-inset-bottom));
+}
+.lt-header {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* ── 3. Touch targets — minimum 44×44px (Apple HIG / WCAG) ─────── */
+
+/* Icon tugmalari */
+.lt-iconbtn {
+  min-width:  44px;
+  min-height: 44px;
+}
+
+/* Control pill tugmalari */
+.lt-control-btn {
+  min-height:  44px;
+  min-width:   44px;
+  touch-action: manipulation; /* 300ms tap delay ni o'chirish */
+}
+
+/* Language almashtirish tugmasi */
+.lt-lang,
+.lt-lang__swap {
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+/* Mic button */
+.lt-mic {
+  touch-action: manipulation;
+  user-select:  none;
+  -webkit-user-select: none;
+}
+
+/* Chunk copy tugmasi — mobilda ham bosish qulay bo'lsin */
+.lt-chunk__copy {
+  min-width:  36px;
+  min-height: 36px;
+}
+
+/* ── 4. iPad (max-width: 1024px) ────────────────────────────────── */
+@media (max-width: 1024px) {
+  /* Kichikroq paddinglər */
+  .lt-header  { padding: 0 var(--sp-5); }
+  .lt-langbar { padding: 0 var(--sp-5); }
+  .lt-controls { padding: var(--sp-4) var(--sp-5); gap: var(--sp-3); }
+  .lt-statusbar { padding: 0 var(--sp-5); }
+
+  /* Panel ichidagi matn va padding */
+  .lt-panel__head  { padding: var(--sp-3) var(--sp-5) var(--sp-2); }
+  .lt-panel__scroll { padding: 0 var(--sp-5) var(--sp-5); }
+  .lt-chunk__text  { font-size: 15px; line-height: 1.55; }
+
+  /* Waveform kichikroq */
+  .lt-flow { height: 44px; }
+
+  /* Control tugmalari compact */
+  .lt-control-btn {
+    font-size: var(--fs-xs);
+    padding: var(--sp-2) var(--sp-3);
+  }
+
+  /* Settings drawer kengligi */
+  /* (inline style bor, bu faqat fallback) */
+}
+
+/* ── 5. Mobile (max-width: 768px) — index.css ni kengaytiradi ─────
+   ESLATMA: index.css da allaqachon bor:
+     - .lt-tabs ko'rinishi
+     - .lt-main single column
+     - .lt-panel hide/show
+     - .lt-langbar flags only
+   Quyida FAQAT index.css da yo'q narsalar qo'shilgan.
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* — Layout: dvh + safe area ── */
+  .lt-app {
+    height: 100dvh;
+  }
+
+  /* — Header —─────────────────────────────────────────── */
+  /* index.css: height 56px, padding sp-4 — bu yetarli    */
+
+  /* — Language bar — compact, bir qatorga sig'sin ─────── */
+  .lt-langbar {
+    height: auto;
+    min-height: 52px;
+    padding: var(--sp-2) var(--sp-4);
+  }
+  /* Bayroqlar bilan birga til nomini ham ko'rsatamiz       */
+  .lt-lang span:not(.lt-lang__flag) {
+    display: inline; /* index.css display:none ni override */
+    font-size: var(--fs-xs);
+    max-width: 70px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lt-lang {
+    padding: var(--sp-1) var(--sp-2);
+    gap: var(--sp-1);
+    min-height: 44px;
+  }
+  .lt-lang__swap {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* — Bottom controls bar — mic markazda, 72px ─────────── */
+  .lt-controls {
+    flex-direction: column;
+    align-items:    center;
+    gap:            var(--sp-3);
+    padding:        var(--sp-4) var(--sp-4) var(--sp-3);
+  }
+
+  /* Mic konteyneri va button */
+  .lt-controls__mic {
+    margin-right: 0;
+    order: -1; /* mic eng tepada */
+  }
+
+  /* 72px mic tugmasi — inline style ni override */
+  .lt-mic {
+    width:  72px !important;
+    height: 72px !important;
+  }
+
+  /* Waveform pastga tushadi, to'liq kenglikda */
+  .lt-flow {
+    width:  100% !important;
+    max-width: 260px;
+    height: 36px;
+    order: 0;
+  }
+
+  /* Control tugmalari bir qatorda — wrap qiladi */
+  .lt-controls > *:not(.lt-controls__mic) {
+    order: 1;
+  }
+  .lt-control-btn {
+    font-size:  var(--fs-xs);
+    padding:    var(--sp-2) var(--sp-3);
+    min-height: 44px;
+  }
+  .lt-controls__spacer { display: none; }
+
+  /* — Statusbar — ─────────────────────────────────────── */
+  .lt-statusbar {
+    height: auto;
+    min-height: 44px;
+    padding: var(--sp-2) var(--sp-4);
+    gap: var(--sp-3);
+    flex-wrap: wrap;
+    /* iOS safe area */
+    padding-bottom: max(var(--sp-2), env(safe-area-inset-bottom));
+  }
+
+  /* — Transcript panels — ─────────────────────────────── */
+  .lt-chunk { padding: var(--sp-3); }
+  .lt-chunk__text {
+    font-size: var(--fs-md);
+    line-height: 1.6;
+  }
+  .lt-panel__scroll {
+    padding: var(--sp-2) var(--sp-4) var(--sp-6);
+  }
+
+  /* — Save tugmasi — mobilda yashiramiz (joy yo'q) ─────── */
+  .lt-save-btn span:last-child { display: none; }
+
+  /* — Settings drawer — to'liq kenglikda ─────────────── */
+  /* (inline style bor, bu qo'shimcha xavfsizlik)          */
+  [role="dialog"] {
+    max-width: 100vw !important;
+    width: 100vw !important;
+  }
+
+  /* — Onboarding — ─────────────────────────────────────── */
+  .lt-onb__card {
+    padding: var(--sp-6) var(--sp-5);
+    margin:  0 var(--sp-4);
+  }
+}
+
+/* ── 6. Kichik mobillar (max-width: 390px — iPhone SE, Galaxy A) ── */
+@media (max-width: 390px) {
+  .lt-logo span:not(.lt-pill) {
+    font-size: var(--fs-md);
+  }
+  .lt-pill { display: none; }
+
+  .lt-chunk__text { font-size: 15px; }
+}
+
+/* ── 7. Landscape mobil (qisqa balandlik) ───────────────────────── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .lt-controls {
+    flex-direction: row;
+    padding: var(--sp-2) var(--sp-4);
+  }
+  .lt-controls__mic { order: 0; }
+  .lt-flow { order: 0; width: 120px !important; height: 32px; }
+  .lt-mic  { width: 52px !important; height: 52px !important; }
+
+  /* Panel scrolli balandligi kamayadi — scroll ishlash uchun */
+  .lt-panel__scroll { padding-bottom: var(--sp-4); }
+}
+
+/* ── 8. prefers-color-scheme: dark ─────────────────────────────── */
+/* App doimo dark — bu explicit declaration scrollbar va
+   form elementlar uchun (OS dark mode bilan uyg'unlashadi) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* OS light preference — override only if no explicit theme chosen */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) {
+    color-scheme: light;
+  }
+}
+
+/* ── 9. prefers-reduced-motion ──────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  /* Waveform to'liq to'xtatiladi (AnimatedBackground ning CSS animations ham) */
+  .lt-flow,
+  .lt-wave,
+  .lt-mic__ring,
+  .lt-bg__orb {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Chunk slide-in animatsiyasi yo'q */
+  .lt-chunk {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Mic pulse yo'q */
+  .lt-mic--listening .lt-mic__icon {
+    animation: none !important;
+  }
+}

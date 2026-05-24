@@ -1,0 +1,36 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="192" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7F77DD"/>
+      <stop offset="1" stop-color="#4A3FC0"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="192" height="192" rx="38" fill="url(#bg)"/>
+  <!-- Subtle top shine -->
+  <rect width="192" height="192" rx="38" fill="url(#shine)"/>
+
+  <!-- Microphone body -->
+  <rect x="76" y="28" width="40" height="76" rx="20"
+        fill="none" stroke="white" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Mic arc -->
+  <path d="M52 92 C52 128 140 128 140 92"
+        fill="none" stroke="white" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Stand line -->
+  <line x1="96" y1="128" x2="96" y2="152"
+        stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <line x1="72" y1="152" x2="120" y2="152"
+        stroke="white" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Translation spark dots (right side, 3 dots) -->
+  <circle cx="142" cy="58" r="5" fill="white" opacity="0.9"/>
+  <circle cx="158" cy="44" r="4" fill="white" opacity="0.65"/>
+  <circle cx="150" cy="32" r="3" fill="white" opacity="0.4"/>
+</svg>

@@ -1,0 +1,16 @@
+{
+  "name": "livetranslate",
+  "version": "1.0.0",
+  "description": "Real-vaqt inglizcha/hindcha → o'zbekcha tarjimon",
+  "private": true,
+  "scripts": {
+    "predev":    "node scripts/check-env.js",
+    "dev":       "concurrently --names BACK,FRONT --prefix-colors cyan,magenta \"npm run backend\" \"npm run frontend\"",
+    "backend":   "cd backend && node server.js",
+    "frontend":  "cd frontend && npm run dev",
+    "setup":     "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
