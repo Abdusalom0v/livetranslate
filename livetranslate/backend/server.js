@@ -147,6 +147,7 @@ app.use(cors({
     // Localda istalgan port ruxsatli (5173, 5174, ...)
     if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true);
     if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return cb(null, true);
+    if (/\.vercel\.app$/.test(origin)) return cb(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
     cb(new Error(`CORS: "${origin}" ruxsatsiz`));
   },
