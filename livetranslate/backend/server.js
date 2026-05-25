@@ -3,6 +3,9 @@ const express   = require('express');
 const cors      = require('cors');
 const rateLimit = require('express-rate-limit');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq      = require('groq-sdk');
+const multer    = require('multer');
+const { toFile } = require('groq-sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -128,6 +131,9 @@ const EDGE_VOICES = {
 };
 
 const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
+
+const groq         = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const upload       = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
@@ -332,6 +338,35 @@ app.post('/api/translate/stream', async (req, res) => {
       res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
       res.end();
     }
+  }
+});
+
+// ── STT — Groq Whisper ────────────────────────────────────────────────────────
+
+app.post('/api/stt', upload.single('audio'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '"audio" fayl kerak' });
+
+  const lang     = req.body.lang || 'uz';
+  const filename = `audio_${Date.now()}.webm`;
+
+  try {
+    const file = await toFile(req.file.buffer, filename, {
+      type: req.file.mimetype || 'audio/webm',
+    });
+
+    const transcription = await groq.audio.transcriptions.create({
+      file,
+      model:           'whisper-large-v3-turbo',
+      language:        lang,
+      response_format: 'json',
+      temperature:     0.0,
+    });
+
+    console.log('[STT] Groq natija:', transcription.text?.slice(0, 80));
+    res.json({ text: transcription.text, language: lang, engine: 'groq-whisper' });
+  } catch (err) {
+    console.error('[STT] Groq xatosi:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

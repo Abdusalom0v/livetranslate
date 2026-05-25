@@ -3,6 +3,7 @@ import './App.css';
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 import { useSpeechRecognition }       from './hooks/useSpeechRecognition.js';
+import { useGroqSTT }                 from './hooks/useGroqSTT.js';
 import { useTranslation }             from './hooks/useTranslation.js';
 import { useTTS, SUPPORTED_LANGS }    from './hooks/useTTS.js';
 
@@ -34,12 +35,12 @@ import {
 const INTERIM_WORD_THRESHOLD = 3;   // har 3 so'zdan keyin tarjima
 const INTERIM_DEBOUNCE_MS    = 300; // 300ms sukutdan keyin yuborish
 
-// Chrome STT bu tillarni qo'llab-quvvatlamaydi (fallback tilga o'tiladi)
-const CHROME_STT_UNSUPPORTED = new Set(['uz','kk','ky','tg','tk','ka','hy','be']);
-// uz → tr-TR fallback bor, shuning uchun dropdown da ko'rinadi (⚠️ bilan)
-const STT_WITH_FALLBACK = new Set(['uz']);
+// Chrome STT bu tillarni qo'llab-quvvatlamaydi va fallback ham yo'q
+const CHROME_STT_UNSUPPORTED = new Set(['kk','ky','tg','tk','ka','hy','be']);
+// uz endi Groq Whisper orqali to'liq ishlaydi — alohida ko'rsatiladi
+const GROQ_LANGS = new Set(['uz']);
 const STT_SOURCE_LANGS = SUPPORTED_LANGS.filter(
-  l => !CHROME_STT_UNSUPPORTED.has(l.code) || STT_WITH_FALLBACK.has(l.code)
+  l => !CHROME_STT_UNSUPPORTED.has(l.code)
 );
 
 let chunkIdCounter = 0;
@@ -233,10 +234,10 @@ function LangDropdown({ buttonRef, langs, selected, onSelect, onClose, sttLimite
           <span style={{ flex: 1 }}>{l.name}</span>
           {sttLimitedCodes?.has(l.code) && (
             <span
-              title="O'zbek STT cheklangan, turk fallback ishlatiladi"
-              style={{ fontSize: 12, opacity: 0.8, marginRight: 2 }}
+              title="Groq Whisper STT"
+              style={{ fontSize: 11, opacity: 0.85, marginRight: 2, color: 'var(--color-accent)' }}
             >
-              ⚠️
+              AI
             </span>
           )}
           {l.code === selected && (
@@ -289,7 +290,7 @@ function LanguageBar({ sourceLang, targetLang, onSwap, onSourceChange, onTargetC
           selected={sourceLang}
           onSelect={onSourceChange}
           onClose={() => setOpenSide(null)}
-          sttLimitedCodes={STT_WITH_FALLBACK}
+          sttLimitedCodes={GROQ_LANGS}
         />
       )}
 
@@ -361,7 +362,7 @@ function BottomBar({ status, onToggleMic }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // ── StatusBar ─────────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
-function StatusBar({ status, latency, chunkCount, isSpeaking, usingElevenLabs, onSave, usage, adminMode }) {
+function StatusBar({ status, latency, chunkCount, isSpeaking, usingElevenLabs, onSave, usage, adminMode, sttEngine }) {
   const isRec = status === 'listening';
 
   const sessionColor = adminMode
@@ -390,6 +391,11 @@ function StatusBar({ status, latency, chunkCount, isSpeaking, usingElevenLabs, o
       {/* Chunk counter */}
       <span className="lt-status-latency" style={{ color: 'var(--fg-3)' }}>
         {chunkCount} chunk{chunkCount !== 1 ? 's' : ''}
+      </span>
+
+      {/* STT engine badge */}
+      <span className="lt-status-latency" style={{ color: 'var(--fg-3)', opacity: 0.75 }}>
+        {sttEngine === 'groq' ? 'Groq Whisper' : 'Web Speech'}
       </span>
 
       {/* TTS indicator */}
@@ -737,20 +743,34 @@ export default function App() {
   }, [translateStream, sourceLang, targetLang, speak, targetLangObj]);
 
   // ── Speech recognition ───────────────────────────────────────────────────────
+  const isUzbek = sourceLang === 'uz';
+
   const {
     interimTranscript,
-    isListening,
+    isListening:    webIsListening,
     isSupported,
-    startListening,
-    stopListening,
+    startListening: webStartListening,
+    stopListening:  webStopListening,
     resetTranscript,
     error:     sttError,
     errorCode: sttErrorCode,
   } = useSpeechRecognition({
-    lang:               sourceLang,
+    lang:               isUzbek ? 'en' : sourceLang,
     onFinalResult:      handleFinalResult,
     onInterimTranslate: handleSyncTranslate,
   });
+
+  const groqSTT = useGroqSTT({
+    lang:        sourceLang,
+    onTranscript: handleFinalResult,
+    onError:     (err) => toast.error('Groq STT: ' + err.message),
+  });
+
+  const isListening = isUzbek ? groqSTT.isListening : webIsListening;
+  const startListening = isUzbek ? groqSTT.startListening : webStartListening;
+  const stopListening  = isUzbek
+    ? groqSTT.stopListening
+    : webStopListening;
 
   // ── Browser / HTTPS compatibility check (run once on mount) ─────────────────
   const compatFiredRef = useRef(false);
@@ -900,7 +920,7 @@ export default function App() {
   const status = isListening ? 'listening' : isTranslating ? 'processing' : 'idle';
 
   const handleToggleMic = useCallback(() => {
-    if (!isSupported) return;
+    if (!isUzbek && !isSupported) return;
     if (isListening) {
       stopListening();
     } else {
@@ -912,10 +932,11 @@ export default function App() {
       setUsage(getUsage());
       startListening();
     }
-  }, [isListening, isSupported, startListening, stopListening]);
+  }, [isUzbek, isListening, isSupported, startListening, stopListening]);
 
   const handleSourceChange = useCallback((code) => {
-    if (isListening) stopListening();
+    if (groqSTT.isListening) groqSTT.stopListening();
+    if (webIsListening) webStopListening();
     resetTranscript();
     setCurrentOriginal('');
     setCurrentTranslation('');
@@ -924,7 +945,7 @@ export default function App() {
     lastFinalText.current        = '';
     finalQueueRef.current        = [];
     setSourceLang(code);
-  }, [isListening, stopListening, resetTranscript]);
+  }, [groqSTT, webIsListening, webStopListening, resetTranscript]);
 
   const handleTargetChange = useCallback((code) => {
     setTargetLang(code);
@@ -932,7 +953,8 @@ export default function App() {
   }, []);
 
   const handleSwapLangs = useCallback(() => {
-    if (isListening) stopListening();
+    if (groqSTT.isListening) groqSTT.stopListening();
+    if (webIsListening) webStopListening();
     resetTranscript();
     setCurrentOriginal('');
     setCurrentTranslation('');
@@ -942,7 +964,7 @@ export default function App() {
     finalQueueRef.current        = [];
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
-  }, [isListening, stopListening, resetTranscript, sourceLang, targetLang]);
+  }, [groqSTT, webIsListening, webStopListening, resetTranscript, sourceLang, targetLang]);
 
   const handleClear = useCallback(() => {
     setChunks([]);
@@ -1038,6 +1060,7 @@ export default function App() {
         onSave={handleSaveSession}
         usage={usage}
         adminMode={adminMode}
+        sttEngine={isUzbek ? 'groq' : 'web'}
       />
 
       {/* ── History modal ── */}
