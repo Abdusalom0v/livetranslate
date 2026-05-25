@@ -22,13 +22,28 @@ export const SUPPORTED_LANGS = {
  *   pt-PT  pl-PL  ja-JP  ko-KR  vi-VN  id-ID  th-TH  ar-SA
  *   fa-IR  he-IL  tr-TR  ru-RU  uk-UA  ro-RO  hu-HU  cs-CZ  sw-KE
  *
- * ❌ Chrome da ishlamaydi — en-US ga avtomatik o'tiladi:
- *   uz-UZ  kk-KZ  ky-KG  tg-TJ  tk-TM  ka-GE  hy-AM  be-BY
+ * ❌ Chrome da ishlamaydi — fallback tilga o'tiladi:
+ *   uz-UZ → tr-TR (lotin o'zbek uchun turk eng yaqin)
+ *   kk-KZ → ru-RU  ky-KG → ru-RU  tg-TJ → ru-RU  tk-TM → tr-TR
+ *   ka-GE → en-US  hy-AM → ru-RU  be-BY → ru-RU
  */
 const CHROME_UNSUPPORTED = new Set([
   'uz-UZ', 'kk-KZ', 'ky-KG', 'tg-TJ',
   'tk-TM', 'ka-GE', 'hy-AM', 'be-BY',
 ]);
+
+// uz-UZ Web Speech API da yo'q
+// tr-TR (turk) lotin o'zbek uchun eng yaqin
+// ru-RU kirill o'zbek uchun ishlatiladi
+const STT_FALLBACK = {
+  'uz': 'tr-TR',  // lotin o'zbek → turk
+  'kk': 'ru-RU',  // qozoq → rus
+  'ky': 'ru-RU',  // qirg'iz → rus
+  'tg': 'ru-RU',  // tojik → rus
+  'tk': 'tr-TR',  // turkman → turk
+  'hy': 'ru-RU',  // arman → rus
+  'be': 'ru-RU',  // belarus → rus
+};
 
 const FALLBACK = 'en-US';
 
@@ -54,15 +69,17 @@ const ERROR_MESSAGES = {
 /**
  * lang ni to'liq BCP-47 ga keltiradi.
  * Kirish: 'en-US' | 'hi-IN' | 'en' | 'hi'  — ikkalasi ham qabul qilinadi.
- * Chiqish: to'liq BCP-47, Chrome da ishlamasa → 'en-US'
+ * Chiqish: to'liq BCP-47, Chrome da ishlamasa → STT_FALLBACK yoki 'en-US'
  */
 function toBcp47(lang) {
   if (!lang) return FALLBACK;
   // 2-harfli kod bo'lsa mapdan qidirish ('en' → 'en-US')
   const bcp47 = SUPPORTED_LANGS[lang] ?? lang;
   if (CHROME_UNSUPPORTED.has(bcp47)) {
-    console.warn(`[STT] "${bcp47}" Chrome da qo'llanmaydi → "${FALLBACK}" ga o'tildi`);
-    return FALLBACK;
+    const shortCode = lang.length === 2 ? lang : lang.split('-')[0];
+    const fallback = STT_FALLBACK[shortCode] ?? FALLBACK;
+    console.warn(`[STT] "${bcp47}" Chrome da qo'llanmaydi → "${fallback}" ga o'tildi`);
+    return fallback;
   }
   return bcp47;
 }

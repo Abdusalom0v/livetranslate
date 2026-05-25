@@ -34,9 +34,13 @@ import {
 const INTERIM_WORD_THRESHOLD = 3;   // har 3 so'zdan keyin tarjima
 const INTERIM_DEBOUNCE_MS    = 300; // 300ms sukutdan keyin yuborish
 
-// Chrome STT bu tillarni qo'llab-quvvatlamaydi (en-US ga fallback bo'ladi)
+// Chrome STT bu tillarni qo'llab-quvvatlamaydi (fallback tilga o'tiladi)
 const CHROME_STT_UNSUPPORTED = new Set(['uz','kk','ky','tg','tk','ka','hy','be']);
-const STT_SOURCE_LANGS = SUPPORTED_LANGS.filter(l => !CHROME_STT_UNSUPPORTED.has(l.code));
+// uz → tr-TR fallback bor, shuning uchun dropdown da ko'rinadi (⚠️ bilan)
+const STT_WITH_FALLBACK = new Set(['uz']);
+const STT_SOURCE_LANGS = SUPPORTED_LANGS.filter(
+  l => !CHROME_STT_UNSUPPORTED.has(l.code) || STT_WITH_FALLBACK.has(l.code)
+);
 
 let chunkIdCounter = 0;
 const nextId    = () => ++chunkIdCounter;
@@ -152,7 +156,7 @@ function Header({ onSettingsClick, onHistoryClick }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // ── LangDropdown (fixed-position — avoids overflow:hidden clipping) ───────────
 // ─────────────────────────────────────────────────────────────────────────────
-function LangDropdown({ buttonRef, langs, selected, onSelect, onClose }) {
+function LangDropdown({ buttonRef, langs, selected, onSelect, onClose, sttLimitedCodes }) {
   const dropRef = useRef(null);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
 
@@ -227,6 +231,14 @@ function LangDropdown({ buttonRef, langs, selected, onSelect, onClose }) {
             {l.flag}
           </span>
           <span style={{ flex: 1 }}>{l.name}</span>
+          {sttLimitedCodes?.has(l.code) && (
+            <span
+              title="O'zbek STT cheklangan, turk fallback ishlatiladi"
+              style={{ fontSize: 12, opacity: 0.8, marginRight: 2 }}
+            >
+              ⚠️
+            </span>
+          )}
           {l.code === selected && (
             <span style={{ color: 'var(--color-accent, #7F77DD)', fontSize: 11 }}>✓</span>
           )}
@@ -277,6 +289,7 @@ function LanguageBar({ sourceLang, targetLang, onSwap, onSourceChange, onTargetC
           selected={sourceLang}
           onSelect={onSourceChange}
           onClose={() => setOpenSide(null)}
+          sttLimitedCodes={STT_WITH_FALLBACK}
         />
       )}
 
@@ -960,8 +973,7 @@ export default function App() {
   }, [setTtsEnabled, ttsStop]);
 
   const handleOnboardingComplete = useCallback(({ source, target }) => {
-    const validSources = ['en', 'hi'];
-    setSourceLang(validSources.includes(source) ? source : 'en');
+    setSourceLang(source || 'en');
     setTargetLang(target || 'uz');
     setOnboardingDone(true);
   }, []);
