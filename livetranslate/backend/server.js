@@ -175,7 +175,9 @@ const translateLimiter = rateLimit({
   },
 });
 
-app.use('/api/translate', translateLimiter);
+// Vaqtli (kunlik) cheklov hozircha o'chirilgan. Keyin qayta yoqish uchun
+// quyidagi qatordagi izohni olib tashlang.
+// app.use('/api/translate', translateLimiter);
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
