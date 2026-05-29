@@ -46,9 +46,12 @@ export function incrementTranslation() {
 }
 
 export function isLimitReached() {
-  if (isAdminMode()) return false
-  const { sessions } = getUsage()
-  return sessions >= DAILY_SESSION_LIMIT
+  // Kunlik sessiya cheklovi hozircha o'chirilgan — cheksiz foydalanish.
+  // Qayta yoqish uchun quyidagi qatorlarni tiklang:
+  //   if (isAdminMode()) return false
+  //   const { sessions } = getUsage()
+  //   return sessions >= DAILY_SESSION_LIMIT
+  return false
 }
 
 export function resetUsage() {

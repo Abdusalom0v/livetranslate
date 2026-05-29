@@ -405,10 +405,12 @@ function StatusBar({ status, latency, chunkCount, isSpeaking, usingElevenLabs, o
         </span>
       )}
 
-      {/* Session usage */}
-      <span className="lt-status-latency" style={{ color: sessionColor }}>
-        {adminMode ? '∞ Admin' : `${usage.sessions}/${usage.limit} sessiya`}
-      </span>
+      {/* Session usage (kunlik limit o'chirilgan — cheksiz) */}
+      {adminMode && (
+        <span className="lt-status-latency" style={{ color: sessionColor }}>
+          ∞ Admin
+        </span>
+      )}
 
       <div className="lt-statusbar__spacer" />
 
