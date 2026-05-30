@@ -3,6 +3,7 @@ import styles from './LangSelector.module.css';
 const LANGS = [
   { code: 'en', label: '🇬🇧 English' },
   { code: 'hi', label: '🇮🇳 Hindi' },
+  { code: 'uz', label: '🇺🇿 Uzbek' },
 ];
 
 export function LangSelector({ value, onChange, disabled }) {
