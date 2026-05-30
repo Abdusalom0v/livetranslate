@@ -1,11 +1,12 @@
 require('dotenv').config();
+const path      = require('path');
+const os        = require('os');
+const fs        = require('fs');
 const express   = require('express');
 const cors      = require('cors');
 const rateLimit = require('express-rate-limit');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const Groq      = require('groq-sdk');
 const multer    = require('multer');
-const { toFile } = require('groq-sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -131,9 +132,11 @@ const EDGE_VOICES = {
 };
 
 const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
+const ffmpeg = require('fluent-ffmpeg');
+ffmpeg.setFfmpegPath('C:\\Users\\bakhrom\\AppData\\Local\\Microsoft\\WinGet\\Links\\ffmpeg.exe');
 
-const groq         = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const upload       = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+const AISHA_API_KEY = process.env.AISHA_API_KEY;
+const upload        = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
@@ -343,31 +346,72 @@ app.post('/api/translate/stream', async (req, res) => {
   }
 });
 
-// ── STT — Groq Whisper ────────────────────────────────────────────────────────
+// ── STT — AISHA AI ────────────────────────────────────────────────────────────
+
+async function convertToWav(inputBuffer) {
+  const uid    = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const tmpIn  = path.join(os.tmpdir(), `audio_in_${uid}.webm`);
+  const tmpOut = path.join(os.tmpdir(), `audio_${uid}.wav`);
+
+  await fs.promises.writeFile(tmpIn, inputBuffer);
+  const stat = await fs.promises.stat(tmpIn);
+  console.log('[STT] Temp fayl hajmi:', stat.size);
+
+  try {
+    await new Promise((resolve, reject) => {
+      ffmpeg(tmpIn)
+        .inputOptions(['-f', 'webm'])
+        .audioChannels(1)
+        .audioFrequency(16000)
+        .toFormat('wav')
+        .on('stderr', (line) => console.log('[ffmpeg stderr]', line))
+        .on('error', reject)
+        .on('end',   resolve)
+        .save(tmpOut);
+    });
+
+    return await fs.promises.readFile(tmpOut);
+  } finally {
+    fs.promises.unlink(tmpIn).catch(() => {});
+    fs.promises.unlink(tmpOut).catch(() => {});
+  }
+}
 
 app.post('/api/stt', upload.single('audio'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '"audio" fayl kerak' });
+  if (!AISHA_API_KEY) return res.status(503).json({ error: 'AISHA_API_KEY topilmadi' });
 
-  const lang     = req.body.lang || 'uz';
-  const filename = `audio_${Date.now()}.webm`;
+  const lang = req.body.lang || 'uz';
+  console.log('[STT] Fayl:', req.file?.originalname, req.file?.mimetype, req.file?.size, 'bytes');
 
   try {
-    const file = await toFile(req.file.buffer, filename, {
-      type: req.file.mimetype || 'audio/webm',
+    const wavBuffer = await convertToWav(req.file.buffer);
+    console.log('[STT] WebM→WAV:', req.file.size, 'B →', wavBuffer.length, 'B');
+
+    const formData = new FormData();
+    const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+    formData.append('audio', blob, `audio_${Date.now()}.wav`);
+    formData.append('language', lang);
+
+    const response = await fetch('https://back.aisha.group/api/v1/stt/post/', {
+      method:  'POST',
+      headers: { 'X-Api-Key': AISHA_API_KEY },
+      body:    formData,
     });
 
-    const transcription = await groq.audio.transcriptions.create({
-      file,
-      model:           'whisper-large-v3-turbo',
-      language:        lang,
-      response_format: 'json',
-      temperature:     0.0,
-    });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`AISHA AI ${response.status}: ${errText}`);
+    }
 
-    console.log('[STT] Groq natija:', transcription.text?.slice(0, 80));
-    res.json({ text: transcription.text, language: lang, engine: 'groq-whisper' });
+    const data = await response.json();
+    console.log('[STT] AISHA response:', JSON.stringify(data));
+    const text = data.transcript || data.text || data.transcription || data.result || data.recognized_text || '';
+
+    console.log('[STT] AISHA AI natija:', text?.slice(0, 80));
+    res.json({ text, language: lang, engine: 'aisha-stt' });
   } catch (err) {
-    console.error('[STT] Groq xatosi:', err.message);
+    console.error('[STT] AISHA AI xatosi:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
