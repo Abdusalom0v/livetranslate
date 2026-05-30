@@ -133,7 +133,8 @@ const EDGE_VOICES = {
 
 const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
 const ffmpeg = require('fluent-ffmpeg');
-ffmpeg.setFfmpegPath('C:\\Users\\bakhrom\\AppData\\Local\\Microsoft\\WinGet\\Links\\ffmpeg.exe');
+const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 const AISHA_API_KEY = process.env.AISHA_API_KEY;
 const upload        = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
